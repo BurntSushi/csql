@@ -19,6 +19,9 @@ Documentation is available at
 
 ### Unstable
 
-At the moment, I'm still experimenting with the public API, so I may still 
-introduce breaking changes.
+At the moment, this project is a bit of an experiment. I'd like to try and use
+it in a few packages to see if it shortens the amount of boiler plate error
+handling and makes other menial tasks easier.
+
+Expect breaking changes to be made while I experiment.
 
