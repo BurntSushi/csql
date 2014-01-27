@@ -16,6 +16,13 @@ type Queryer interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
+// QExecer is the composition of the Queryer and Execer interfaces.
+type QExecer interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
 // Preparer describes values that can create prepared statements.
 type Preparer interface {
 	Prepare(query string) (*sql.Stmt, error)
