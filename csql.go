@@ -3,6 +3,7 @@ package csql
 import (
 	"database/sql"
 	"database/sql/driver"
+	"fmt"
 )
 
 // Execer describes values that can execute queries without returning any rows.
@@ -136,4 +137,16 @@ func Value(v Valuer) driver.Value {
 	dval, err := v.Value()
 	SQLPanic(err)
 	return dval
+}
+
+// Truncate truncates the table given. It uses the driver given to determine
+// what kind of query to run.
+func Truncate(db Execer, driver, table string) error {
+	return Safe(func() {
+		if driver == "sqlite3" {
+			Exec(db, fmt.Sprintf("DELETE FROM %s", table))
+		} else {
+			Exec(db, fmt.Sprintf("TRUNCATE TABLE %s", table))
+		}
+	})
 }
