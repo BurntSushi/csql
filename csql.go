@@ -139,6 +139,16 @@ func Value(v Valuer) driver.Value {
 	return dval
 }
 
+// Count accepts any query of the form "SELECT COUNT(*) FROM ..." and returns
+// the count. If an error occurs, it is panic'd as a SQLError.
+//
+// Any args given are passed to the query.
+func Count(db Queryer, query string, args ...interface{}) int {
+	var count int
+	Scan(db.QueryRow(query, args...), &count)
+	return count
+}
+
 // Truncate truncates the table given. It uses the driver given to determine
 // what kind of query to run.
 func Truncate(db Execer, driver, table string) error {
