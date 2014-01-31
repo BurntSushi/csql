@@ -75,9 +75,9 @@ func Safe(f func()) (err error) {
 	return nil
 }
 
-// SQLPanic will wrap the given error in SQLError and pass it to panic.
+// Panic will wrap the given error in SQLError and pass it to panic.
 // If the error is nil, this function does nothing.
-func SQLPanic(err error) {
+func Panic(err error) {
 	if err != nil {
 		panic(SQLError{err})
 	}
@@ -105,7 +105,7 @@ func Tx(db Beginner, f func()) error {
 // If an error occurs, it is panic'd as a SQLError.
 func Exec(db Execer, query string, args ...interface{}) sql.Result {
 	r, err := db.Exec(query, args...)
-	SQLPanic(err)
+	Panic(err)
 	return r
 }
 
@@ -113,7 +113,7 @@ func Exec(db Execer, query string, args ...interface{}) sql.Result {
 // If an error occurs, it is panic'd as a SQLError.
 func Query(db Queryer, query string, args ...interface{}) *sql.Rows {
 	rs, err := db.Query(query, args...)
-	SQLPanic(err)
+	Panic(err)
 	return rs
 }
 
@@ -121,21 +121,21 @@ func Query(db Queryer, query string, args ...interface{}) *sql.Rows {
 // If an error occurs, it is panic'd as a SQLError.
 func Prepare(db Preparer, query string) *sql.Stmt {
 	stmt, err := db.Prepare(query)
-	SQLPanic(err)
+	Panic(err)
 	return stmt
 }
 
 // Scan performs a scan on a row. If an error occurs, it is panic'd as a
 // SQLError.
 func Scan(scanner RowScanner, dest ...interface{}) {
-	SQLPanic(scanner.Scan(dest...))
+	Panic(scanner.Scan(dest...))
 }
 
 // Value returns the driver value.
 // If an error occurs, it is panic'd as a SQLError.
 func Value(v Valuer) driver.Value {
 	dval, err := v.Value()
-	SQLPanic(err)
+	Panic(err)
 	return dval
 }
 

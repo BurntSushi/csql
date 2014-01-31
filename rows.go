@@ -8,6 +8,6 @@ func ForRow(rows *sql.Rows, do func(RowScanner)) error {
 		for rows.Next() {
 			do(rows)
 		}
-		SQLPanic(rows.Err())
+		Panic(rows.Err())
 	})
 }
