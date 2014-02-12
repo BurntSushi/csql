@@ -29,20 +29,19 @@ func NewInserter(
 	size int,
 	table string,
 	columns ...string,
-) (*Inserter, error) {
+) (ins *Inserter, err error) {
+	defer Safe(&err)
+
 	if size < 1 {
 		size = 1
 	}
-	var ins *Inserter
-	err := Safe(func() {
-		ins = &Inserter{tx, 0, size, table, columns, nil, nil}
-		if driver == "postgres" {
-			ins.stmt = Prepare(tx, pq.CopyIn(table, columns...))
-		} else {
-			ins.data = make([]interface{}, 0, 100)
-		}
-	})
-	return ins, err
+	ins = &Inserter{tx, 0, size, table, columns, nil, nil}
+	if driver == "postgres" {
+		ins.stmt = Prepare(tx, pq.CopyIn(table, columns...))
+	} else {
+		ins.data = make([]interface{}, 0, 100)
+	}
+	return
 }
 
 func (in *Inserter) Exec(args ...interface{}) error {
@@ -70,17 +69,18 @@ func (in *Inserter) Exec(args ...interface{}) error {
 	return nil
 }
 
-func (in *Inserter) run() error {
-	err := Safe(func() {
-		q := in.prepare()
-		if len(q) == 0 {
-			return // nothing to insert! success!
-		}
-		Exec(in.tx, q, in.data...)
-	})
+func (in *Inserter) run() (err error) {
+	defer Safe(&err)
+
+	q := in.prepare()
+	if len(q) == 0 {
+		return // nothing to insert! success!
+	}
+
+	Exec(in.tx, q, in.data...)
 	in.current = 0
 	in.data = in.data[:0]
-	return err
+	return
 }
 
 func (in *Inserter) prepare() string {

@@ -55,24 +55,42 @@ func (se SQLError) Error() string {
 	return se.error.Error()
 }
 
-// Safe executes any function that may panic with a SQLError safely. In
+// Safe can be used to recover from a SQLError panic and convert it to an
+// error. A pointer to the error must be passed. If a panic occurs with
+// anything other than a SQLError, then it is re-panic'd.
+//
+// This function is typically useful with 'defer' and a named error return
+// value. For example:
+//
+//	func DoSomething(db Execer) (err error) {
+//		defer Safe(&err)
+//
+//		Exec(db, "INSERT INTO ...")
+//		return
+//	}
+//
+// In this case, if the Exec (included in this package) fails, then it is
+// converted to an error and used as the return value of DoSomething.
+func Safe(errp *error) {
+	if e := recover(); e != nil {
+		switch err := e.(type) {
+		case SQLError:
+			*errp = err
+		default:
+			panic(e)
+		}
+	}
+}
+
+// SafeFunc executes any function that may panic with a SQLError safely. In
 // particular, if `f` panics with a SQLError, then Safe recovers and returns
 // the error wrapped by SQLError.
 //
 // If `f` panics with any other type of error, the panic is not recovered.
-func Safe(f func()) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(SQLError); !ok {
-				panic(r)
-			} else {
-				err = e.error
-				return
-			}
-		}
-	}()
+func SafeFunc(f func()) (err error) {
+	defer Safe(&err)
 	f()
-	return nil
+	return
 }
 
 // Panic will wrap the given error in SQLError and pass it to panic.
@@ -94,7 +112,7 @@ func Tx(db Beginner, f func()) error {
 	if err != nil {
 		return err
 	}
-	if err := Safe(f); err != nil {
+	if err := SafeFunc(f); err != nil {
 		tx.Rollback() // ignore this error (return the first)
 		return err
 	}
@@ -151,12 +169,12 @@ func Count(db Queryer, query string, args ...interface{}) int {
 
 // Truncate truncates the table given. It uses the driver given to determine
 // what kind of query to run.
-func Truncate(db Execer, driver, table string) error {
-	return Safe(func() {
-		if driver == "sqlite3" {
-			Exec(db, fmt.Sprintf("DELETE FROM %s", table))
-		} else {
-			Exec(db, fmt.Sprintf("TRUNCATE TABLE %s", table))
-		}
-	})
+func Truncate(db Execer, driver, table string) (err error) {
+	defer Safe(&err)
+	if driver == "sqlite3" {
+		Exec(db, fmt.Sprintf("DELETE FROM %s", table))
+	} else {
+		Exec(db, fmt.Sprintf("TRUNCATE TABLE %s", table))
+	}
+	return
 }
