@@ -8,11 +8,6 @@ import (
 	"github.com/lib/pq"
 )
 
-// TODO: Modify this so it uses COPY IN from github.com/lib/pq when it's
-// available.
-//
-// But how do we know if the pq package is being used? Hmm...
-
 type Inserter struct {
 	tx      *sql.Tx
 	table   string

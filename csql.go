@@ -44,14 +44,13 @@ type Beginner interface {
 	Begin() (*sql.Tx, error)
 }
 
-// SQLError satisfies the error interface. All panic'd errors in this package
-// are SQLErrors. Errors returned by functions in this package are never
-// SQLerrors.
-type SQLError struct {
+// Error satisfies the error interface. All panic'd errors in this package
+// are Errors.
+type Error struct {
 	error
 }
 
-func (se SQLError) Error() string {
+func (se Error) Error() string {
 	return se.error.Error()
 }
 
@@ -74,7 +73,7 @@ func (se SQLError) Error() string {
 func Safe(errp *error) {
 	if e := recover(); e != nil {
 		switch err := e.(type) {
-		case SQLError:
+		case Error:
 			*errp = err
 		default:
 			panic(e)
@@ -93,11 +92,11 @@ func SafeFunc(f func()) (err error) {
 	return
 }
 
-// Panic will wrap the given error in SQLError and pass it to panic.
+// Panic will wrap the given error in Error and pass it to panic.
 // If the error is nil, this function does nothing.
 func Panic(err error) {
 	if err != nil {
-		panic(SQLError{err})
+		panic(Error{err})
 	}
 }
 
@@ -106,17 +105,15 @@ func Panic(err error) {
 // the transaction is committed.
 //
 // The first error that occurs (including beginning and ending the transaction)
-// is returned.
-func Tx(db Beginner, f func()) error {
+// is panic'd.
+func Tx(db Beginner, f func(*sql.Tx)) {
 	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-	if err := SafeFunc(f); err != nil {
+	Panic(err)
+	if err := SafeFunc(func() { f(tx) }); err != nil {
 		tx.Rollback() // ignore this error (return the first)
-		return err
+		panic(err)
 	}
-	return tx.Commit()
+	Panic(tx.Commit())
 }
 
 // Exec returns the result of a running a query that doesn't return any rows.
@@ -169,12 +166,10 @@ func Count(db Queryer, query string, args ...interface{}) int {
 
 // Truncate truncates the table given. It uses the driver given to determine
 // what kind of query to run.
-func Truncate(db Execer, driver, table string) (err error) {
-	defer Safe(&err)
+func Truncate(db Execer, driver, table string) {
 	if driver == "sqlite3" {
 		Exec(db, fmt.Sprintf("DELETE FROM %s", table))
 	} else {
 		Exec(db, fmt.Sprintf("TRUNCATE TABLE %s", table))
 	}
-	return
 }
